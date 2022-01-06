@@ -1,6 +1,6 @@
 <template>
-  <li class="node-tree" :class="shouldShowChildren === true ? 'active' : null">
-    <v-card :ripple="false" @click="toggleChildren()" class="mt-5">
+  <li class="node-tree">
+    <v-card :ripple="false" @click="toggleChildren()">
       <v-card-text>
         <v-row class="od-card" align="center">
           <v-col md="1">
@@ -28,8 +28,14 @@
                   <p class="ml-5">{{ node.createdAt }}</p>
                   <div class="ml-auto">
                     <p
+                      @click.stop="shouldShowReplyPanel = !shouldShowReplyPanel"
+                      class="d-inline-block font-weight-bold mr-5 blue--text"
+                    >
+                      Reply
+                    </p>
+                    <p
                       @click.stop="deleteComment(path)"
-                      class="font-weight-bold"
+                      class="d-inline-block font-weight-bold red--text"
                     >
                       Delete
                     </p>
@@ -40,17 +46,31 @@
                 <span class="label">{{ node.content }}</span>
               </v-col>
             </v-row>
-            <!-- <v-btn
-              @click="deleteComment(path)"
-              color="primary"
-              class="d-inline-block ml-2"
-              elevation="0"
-              >Delete</v-btn
-            > -->
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
+    <add-comments
+      class="mt-5"
+      v-if="shouldShowReplyPanel"
+      :path="path"
+      :isComment="false"
+      @closePanel=";(shouldShowReplyPanel = false), (shouldShowChildren = true)"
+    />
+    <div
+      :class="
+        shouldShowChildren === true && node.replies && node.replies.length
+          ? 'separating-line1'
+          : null
+      "
+    ></div>
+    <div
+      :class="
+        shouldShowChildren === true && node.replies && node.replies.length
+          ? 'separating-line2'
+          : null
+      "
+    ></div>
     <ul v-if="shouldShowChildren && node.replies && node.replies.length">
       <child-comments
         v-for="(child, index) in node.replies"
@@ -64,16 +84,26 @@
 </template>
 
 <script>
+import scrollToBottom from '@/mixins/scrollToBottom'
 export default {
   name: 'child-comments',
   props: {
     node: Object,
     path: String,
   },
+  mixins: [scrollToBottom],
+
   data() {
     return {
       shouldShowChildren: false,
+      shouldShowReplyPanel: false,
     }
+  },
+  watch: {
+    shouldShowReplyPanel(val) {
+      this.$nuxt.$emit('isReplyPanelOpen', val)
+      this.scrollToBottom()
+    },
   },
   methods: {
     toggleChildren() {
@@ -90,13 +120,23 @@ export default {
 .node-tree {
   position: relative;
 }
-.active::before {
-  content: ' ' !important;
-  width: 1px !important;
-  height: 100% !important;
-  background: red !important;
-  position: absolute !important;
-  left: 10px !important;
+.separating-line1::after {
+  content: ' ';
+  width: 1px;
+  height: 40%;
+  background: #eee;
+  position: absolute;
+  left: 10px;
+  bottom: 0;
+}
+.separating-line2::after {
+  content: ' ';
+  width: 1px;
+  background: #eee;
+  position: absolute;
+  left: 10px;
+  height: 50%;
+  margin-top: 20px;
 }
 .od-card {
   min-height: 100px;
@@ -107,6 +147,7 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  padding: 15px;
 }
 .v-card--link:before {
   background: none;
